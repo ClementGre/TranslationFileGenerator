@@ -173,11 +173,12 @@ public class Main {
                     commentLines++;
                     writer.newLine();
                     for(Map.Entry<String, String> translations : fileTranslations.getValue().entrySet()){
-                        if(codeFilesKeys.get(fileTranslations.getKey()).contains(translations.getKey())){
+                        if(codeKeys.contains(translations.getKey())){
                             writer.write(translations.getKey() + SEPARATOR + translations.getValue());
                             lines++;
                             writer.newLine();
                             codeFilesKeys.get(fileTranslations.getKey()).remove(translations.getKey());
+                            codeKeys.remove(translations.getKey());
                         }else{
                             System.out.println("Remove existing translation from file (unused) : " + translations.getKey() + SEPARATOR + translations.getValue());
                             removed ++;
@@ -185,10 +186,12 @@ public class Main {
                     }
 
                     for(String key : codeFilesKeys.get(fileTranslations.getKey())){
-                        writer.write(key + SEPARATOR);
-                        System.out.println("Add translation line to : " + key);
-                        added++; lines++;
-                        writer.newLine();
+                        if(!existingKeys.contains(key)){
+                            writer.write(key + SEPARATOR);
+                            System.out.println("Add translation line to : " + key);
+                            added++; lines++;
+                            writer.newLine();
+                        }
                     }
                     codeFilesKeys.remove(fileTranslations.getKey());
 
