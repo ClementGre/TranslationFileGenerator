@@ -26,9 +26,13 @@ public class Main {
     // The output file, with all translations
     public static final String OUT_FILE_PATH = "C:\\Users\\Clement\\Developpement\\Java\\PDF4Teachers\\template.txt";
 
+    // Prefix and suffix of the method that we have to catch
+// Here, the method are TR.tr("key string")
     public static final String PREFIX = "TR.tr(\"";
-    public static final String SUFFIX = "\"";
+    public static final String SUFFIX = "\")";
 
+    // Separator between the key and value in the translation file
+    // Keep only one char for your security
     public static final String SEPARATOR = "=";
 
     /////////////////////////////////////////////////////////////////////////////////
