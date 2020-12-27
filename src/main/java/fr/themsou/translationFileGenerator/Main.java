@@ -1,9 +1,7 @@
 package fr.themsou.translationFileGenerator;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class Main {
@@ -12,24 +10,28 @@ public class Main {
     ///////////////////////////////// SETTINGS ZONE /////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////
 
-    // Use this option if you want to update an already translated file,
-    // we will add to this file the new translations gets in the code,
-    // and remove the unused translations.
+    // Use this option if you want to add automatically the translations contained in another already translated file,
+    // this could be helpful if you want to update an already translated file.
     // Use false if you want to disable this option.
     public static final boolean READ_EXISTING_FILE = true;
     // Path to the already translated file
-    public static final String ALREADY_TRANSLATED_FILE_PATH = "C:\\Users\\Clement\\Developpement\\Java\\PDF4Teachers\\src\\main\\resources\\translations\\English US.txt";
+    public static final String ALREADY_TRANSLATED_FILE_PATH = "C:\\Users\\Clement\\Developpement\\Java\\PDF4Teachers\\src\\main\\resources\\translations\\en-us.txt";
 
     // The code where we have to get translations
-    public static final String CODE_PATH = "C:\\Users\\Clement\\Developpement\\Java\\PDF4Teachers\\src\\main\\java\\fr\\themsou";
+    public static final String CODE_PATH = "C:\\Users\\Clement\\Developpement\\Java\\PDF4Teachers\\src\\main\\java\\fr\\clementgre";
 
     // The output file, with all translations
-    public static final String OUT_FILE_PATH = "C:\\Users\\Clement\\Developpement\\Java\\PDF4Teachers\\template.txt";
+    public static final String OUT_FILE_PATH = "C:\\Users\\Clement\\Developpement\\Java\\PDF4Teachers\\src\\main\\resources\\translations\\en-us-new.txt";
 
-    // Prefix and suffix of the method that we have to catch
-// Here, the method are TR.tr("key string")
-    public static final String PREFIX = "TR.tr(\"";
-    public static final String SUFFIX = "\")";
+    // Each of the arguments of Arrays.asList is an extension which will be authorized to be read.
+    // If you wrote your code in Java, you can keep .java. If your code is in JavaScript, replace .java by .js.
+    // The case is not taken in account.
+    public static final List<String> ACCEPTED_EXTENSIONS = Arrays.asList(".java");
+
+    // Prefix and suffix of the methods that we have to catch
+    // Theses prefix/suffix are stored as a Map (a list of key/value pairs). Map.of is generating this map with the impair args as a key and the pair args as a value. Here, we have 2 pairs.
+    // Here, the method are TR.tr("key string") or TR.ct("key string")
+    public static final Map<String, String> PREFIXES_SUFFIXES = Map.of("TR.tr(\"", "\")", "TR.ct(\"", "\")");
 
     // Separator between the key and value in the translation file
     // Keep only one char for your security
@@ -42,11 +44,9 @@ public class Main {
     static ArrayList<String> codeKeys = new ArrayList<>();
     static HashMap<String, ArrayList<String>> codeFilesKeys = new HashMap<>();
 
-    static ArrayList<String> existingKeys = new ArrayList<>();
-    static HashMap<String, HashMap<String, String>> existingFilesTranslations = new HashMap<>();
+    static HashMap<String, String> existingTranslations = new HashMap<>();
 
     static int added = 0;
-    static int removed = 0;
     static int lines = 0;
     static int commentLines = 0;
 
@@ -62,29 +62,30 @@ public class Main {
                 System.out.println("-> Reading already translated file...");
                 System.out.println("-------------------------");
                 readExistingFile(in);
+                System.out.println("-> Stored " + existingTranslations.size() + " already existing translations");
             }else{
                 System.out.println(in.getAbsolutePath() + " does not exist !");
             }
-
+            System.out.println();
         }
 
         System.out.println("-------------------------");
         System.out.println("-> Reading code files...");
         System.out.println("-------------------------");
         fetchFiles(dir);
+        System.out.println("-> Caught " + codeKeys.size() + " translations keys in " + codeFilesKeys.size() + " files.");
+        System.out.println();
 
         System.out.println("-------------------------");
         System.out.println("-> Writing...");
         System.out.println("-------------------------");
         write(out);
-
-        System.out.println("-------------------------");
         System.out.println("-> COMPLETED !");
-        System.out.println("   " + added + " lines added");
-        System.out.println("   " + removed + " lines removed");
-        System.out.println("   " + lines + " lines writed (" + (lines+commentLines) + " total)");
-        System.out.println("   " + commentLines + " class name lines (don't remove it please)");
-        System.out.println("-------------------------");
+        System.out.println("   " + added + " new empty translations");
+        System.out.println("   " + (lines-added) + " old translations reused");
+        System.out.println("   " + existingTranslations.size() + " old translations not reused");
+        System.out.println("   " + lines + " lines wrote (" + (lines+commentLines) + " total)");
+        System.out.println("   " + commentLines + " file name lines");
 
     }
 
@@ -93,33 +94,25 @@ public class Main {
         try{
             BufferedReader reader = new BufferedReader(new FileReader(file));
 
-            HashMap<String, String> translationsToAdd = new HashMap<>();
-            String fileName = null;
             String line;
             while((line = reader.readLine()) != null){
-                if(line.startsWith("# ")){
-                    if(fileName != null){
-                        existingFilesTranslations.put(fileName, translationsToAdd);
-                        translationsToAdd = new HashMap<>();
-                    }
-                    fileName = line.replaceFirst(Pattern.quote("# "), "");
-                }else{
+                if(!line.startsWith("# ")){
                     String key = removeAfterNotEscaped(line, SEPARATOR);
                     String value = removeBeforeNotEscaped(line, SEPARATOR);
-                    if(!existingKeys.contains(key)){
-                        existingKeys.add(key);
-                        translationsToAdd.put(key, value);
+                    if(!existingTranslations.containsKey(key)){
 
                         if(value.isEmpty()) System.out.println("WARNING : no translations in the existing file for : " + key);
-                    }else System.out.println("WARNING : a key is twice in the existing file : " + key);
+                        else existingTranslations.put(key, value);
+
+                    }else System.out.println("WARNING : a key is twice in the existing file : " + key + " (This issue is solved automatically)");
                 }
             }
-            if(fileName != null) existingFilesTranslations.put(fileName, translationsToAdd);
 
         }catch (IOException e){ e.printStackTrace(); }
     }
 
     public static void fetchFiles(File dir){
+        if(!dir.exists()) throw new RuntimeException("The dir of code files to read does not exist ! (Constant CODE_PATH)");
         for(File file : dir.listFiles()){
             if(file.isDirectory()) fetchFiles(file);
             else readFile(file);
@@ -127,7 +120,16 @@ public class Main {
     }
 
     public static void readFile(File file){
-        String fileName = file.getName().replaceAll(Pattern.quote(".java"), "");
+        String fileName = file.getName();
+        boolean canContinue = false;
+        for(String acceptedExtension : ACCEPTED_EXTENSIONS){
+            if(file.getName().toLowerCase().endsWith(acceptedExtension.toLowerCase())) {
+                fileName = removeAfterLastRegex(fileName, acceptedExtension);
+                canContinue = true; break;
+            }
+        }
+        if(!canContinue) return;
+
         try{
             BufferedReader reader = new BufferedReader(new FileReader(file));
             StringBuilder fileText = new StringBuilder();
@@ -140,26 +142,31 @@ public class Main {
                 fileText.append(line);
             }
             reader.close();
-
-            String[] trStarts = fileText.toString()
-                    .replaceAll(Pattern.quote("\" + \""), "")
-                    .replaceAll(Pattern.quote("\"+ \""), "")
-                    .replaceAll(Pattern.quote("\" +\""), "")
-                    .replaceAll(Pattern.quote("\"+\""), "")
-                    .split(Pattern.quote(PREFIX));
-
             ArrayList<String> textsToAdd = new ArrayList<>();
-            int i = 0;
-            for(String trStart : trStarts){
-                if(i != 0){
-                    String key = removeAfter(trStart, SUFFIX);
-                    if(!codeKeys.contains(key)){
-                        codeKeys.add(key);
-                        textsToAdd.add(key);
+
+            for(Map.Entry<String, String> prefixSuffix : PREFIXES_SUFFIXES.entrySet()){
+
+                String[] trStarts = fileText.toString()
+                        .replaceAll(Pattern.quote("\" + \""), "") // Protection against useless escapes
+                        .replaceAll(Pattern.quote("\"+ \""), "")
+                        .replaceAll(Pattern.quote("\" +\""), "")
+                        .replaceAll(Pattern.quote("\"+\""), "")
+                        .split(Pattern.quote(prefixSuffix.getKey()));
+
+
+                int i = 0;
+                for(String trStart : trStarts){
+                    if(i != 0){
+                        String key = removeAfter(trStart, prefixSuffix.getValue());
+                        if(!codeKeys.contains(key)){
+                            codeKeys.add(key);
+                            textsToAdd.add(key);
+                        }
                     }
+                    i++;
                 }
-                i++;
             }
+
             codeFilesKeys.put(fileName, textsToAdd);
 
         }catch (IOException e){ e.printStackTrace(); }
@@ -171,50 +178,25 @@ public class Main {
         try{
             BufferedWriter writer = new BufferedWriter(new FileWriter(file, false));
 
-            for(Map.Entry<String, HashMap<String, String>> fileTranslations : existingFilesTranslations.entrySet()){
-                if(codeFilesKeys.containsKey(fileTranslations.getKey())) {
-                    writer.write("# " + fileTranslations.getKey());
-                    commentLines++;
-                    writer.newLine();
-                    for(Map.Entry<String, String> translations : fileTranslations.getValue().entrySet()){
-                        if(codeKeys.contains(translations.getKey())){
-                            writer.write(translations.getKey() + SEPARATOR + translations.getValue());
-                            lines++;
-                            writer.newLine();
-                            codeFilesKeys.get(fileTranslations.getKey()).remove(translations.getKey());
-                            codeKeys.remove(translations.getKey());
-                        }else{
-                            System.out.println("Remove existing translation from file (unused) : " + translations.getKey() + SEPARATOR + translations.getValue());
-                            removed ++;
-                        }
-                    }
+            for(Map.Entry<String, ArrayList<String>> fileNameKeys : codeFilesKeys.entrySet()){
+                if(fileNameKeys.getValue().size() == 0) continue;
 
-                    for(String key : codeFilesKeys.get(fileTranslations.getKey())){
-                        if(!existingKeys.contains(key)){
-                            writer.write(key + SEPARATOR);
-                            System.out.println("Add translation line to : " + key);
-                            added++; lines++;
-                            writer.newLine();
-                        }
-                    }
-                    codeFilesKeys.remove(fileTranslations.getKey());
-
-                }else{
-                    System.out.println("Remove existing translation file from file (unused) : # " + fileTranslations.getKey());
-                    removed += fileTranslations.getKey().length();
-                }
-            }
-
-            for(Map.Entry<String, ArrayList<String>> fileKeys : codeFilesKeys.entrySet()){
-                writer.write("# " + fileKeys.getKey());
-                System.out.println("Add file : # " + fileKeys.getKey());
+                writer.write("# " + fileNameKeys.getKey());
                 commentLines++;
                 writer.newLine();
-                for(String key : fileKeys.getValue()){
-                    writer.write(key + SEPARATOR);
-                    System.out.println("Add translation line to : " + key);
-                    added++; lines++;
-                    writer.newLine();
+
+                for(String codeKey : fileNameKeys.getValue()){
+
+                    if(existingTranslations.containsKey(codeKey)){
+                        writer.write(codeKey + SEPARATOR + existingTranslations.get(codeKey));
+                        lines++;
+                        writer.newLine();
+                        existingTranslations.remove(codeKey);
+                    }else{
+                        writer.write(codeKey + SEPARATOR);
+                        added++; lines++;
+                        writer.newLine();
+                    }
                 }
             }
 
@@ -271,5 +253,14 @@ public class Main {
             }
 
         }
+    }
+    public static String removeAfterLastRegex(String string, String rejex){
+        if(rejex.isEmpty()) return string;
+        int index = string.lastIndexOf(rejex);
+
+        if(index == -1) return string;
+        if(index < string.length()) return string.substring(0, index);
+
+        return "";
     }
 }
