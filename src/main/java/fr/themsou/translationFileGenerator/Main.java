@@ -15,13 +15,13 @@ public class Main {
     // Use false if you want to disable this option.
     public static final boolean READ_EXISTING_FILE = true;
     // Path to the already translated file
-    public static final String ALREADY_TRANSLATED_FILE_PATH = "C:\\Users\\Clement\\Developpement\\Java\\PDF4Teachers\\src\\main\\resources\\translations\\en-us.txt";
+    public static final String ALREADY_TRANSLATED_FILE_PATH = "C:\\Users\\Clement\\Developpement\\Java\\PDF4Teachers\\src\\main\\resources\\translations\\it-it.txt";
 
     // The code where we have to get translations
     public static final String CODE_PATH = "C:\\Users\\Clement\\Developpement\\Java\\PDF4Teachers\\src\\main\\java\\fr\\clementgre";
 
     // The output file, with all translations
-    public static final String OUT_FILE_PATH = "C:\\Users\\Clement\\Developpement\\Java\\PDF4Teachers\\src\\main\\resources\\translations\\en-us-new.txt";
+    public static final String OUT_FILE_PATH = "C:\\Users\\Clement\\Developpement\\Java\\PDF4Teachers\\src\\main\\resources\\translations\\it-it.txt";
 
     // Each of the arguments of Arrays.asList is an extension which will be authorized to be read.
     // If you wrote your code in Java, you can keep .java. If your code is in JavaScript, replace .java by .js.
@@ -57,10 +57,10 @@ public class Main {
         File out = new File(OUT_FILE_PATH);
 
         if(READ_EXISTING_FILE){
+            System.out.println("-------------------------");
+            System.out.println("-> Reading already translated file...");
+            System.out.println("-------------------------");
             if(in.exists()){
-                System.out.println("-------------------------");
-                System.out.println("-> Reading already translated file...");
-                System.out.println("-------------------------");
                 readExistingFile(in);
                 System.out.println("-> Stored " + existingTranslations.size() + " already existing translations");
             }else{
