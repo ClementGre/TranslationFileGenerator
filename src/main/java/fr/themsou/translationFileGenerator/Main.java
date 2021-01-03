@@ -15,13 +15,14 @@ public class Main {
     // Use false if you want to disable this option.
     public static final boolean READ_EXISTING_FILE = true;
     // Path to the already translated file
-    public static final String ALREADY_TRANSLATED_FILE_PATH = "C:\\Users\\Clement\\Developpement\\Java\\PDF4Teachers\\src\\main\\resources\\translations\\it-it.txt";
+    public static final String ALREADY_TRANSLATED_FILE_PATH = "C:\\Users\\Clement\\Developpement\\Java\\PDF4Teachers\\src\\main\\resources\\translations\\en-us.txt";
 
     // The code where we have to get translations
     public static final String CODE_PATH = "C:\\Users\\Clement\\Developpement\\Java\\PDF4Teachers\\src\\main\\java\\fr\\clementgre";
 
     // The output file, with all translations
-    public static final String OUT_FILE_PATH = "C:\\Users\\Clement\\Developpement\\Java\\PDF4Teachers\\src\\main\\resources\\translations\\it-it.txt";
+    //public static final String OUT_FILE_PATH = "C:\\Users\\Clement\\Developpement\\Java\\PDF4Teachers\\src\\main\\resources\\translations\\fr-fr.txt";
+    public static final String OUT_FILE_PATH = "C:\\Users\\Clement\\Downloads\\test.txt";
 
     // Each of the arguments of Arrays.asList is an extension which will be authorized to be read.
     // If you wrote your code in Java, you can keep .java. If your code is in JavaScript, replace .java by .js.
@@ -44,10 +45,12 @@ public class Main {
     static ArrayList<String> codeKeys = new ArrayList<>();
     static HashMap<String, ArrayList<String>> codeFilesKeys = new HashMap<>();
 
+    static ArrayList<String> existingEmptyTranslations = new ArrayList<>();
     static HashMap<String, String> existingTranslations = new HashMap<>();
 
+    static int empty = 0;
+    static int translated = 0;
     static int added = 0;
-    static int lines = 0;
     static int commentLines = 0;
 
     public static void main(String[] args) {
@@ -62,7 +65,9 @@ public class Main {
             System.out.println("-------------------------");
             if(in.exists()){
                 readExistingFile(in);
-                System.out.println("-> Stored " + existingTranslations.size() + " already existing translations");
+                System.out.println("-> STORED !");
+                System.out.println("   " + existingEmptyTranslations.size() + " old translations empty");
+                System.out.println("   " + existingTranslations.size() + " old translations translated");
             }else{
                 System.out.println(in.getAbsolutePath() + " does not exist !");
             }
@@ -81,11 +86,11 @@ public class Main {
         System.out.println("-------------------------");
         write(out);
         System.out.println("-> COMPLETED !");
-        System.out.println("   " + added + " new empty translations");
-        System.out.println("   " + (lines-added) + " old translations reused");
-        System.out.println("   " + existingTranslations.size() + " old translations not reused");
-        System.out.println("   " + lines + " lines wrote (" + (lines+commentLines) + " total)");
-        System.out.println("   " + commentLines + " file name lines");
+        System.out.println("   " + translated + " old translations reused");
+        System.out.println("   " + empty + " empty translations");
+        System.out.println("      " + (empty-added) + " already existing translations");
+        System.out.println("      " + added + " added translations from code");
+        System.out.println("   " + (empty+translated) + " translations lines ( + " + commentLines + " files names = " + (empty+translated+commentLines) + " lines)");
 
     }
 
@@ -101,8 +106,12 @@ public class Main {
                     String value = removeBeforeNotEscaped(line, SEPARATOR);
                     if(!existingTranslations.containsKey(key)){
 
-                        if(value.isEmpty()) System.out.println("WARNING : no translations in the existing file for : " + key);
-                        else existingTranslations.put(key, value);
+                        if(value.isEmpty()){
+                            System.out.println("WARNING : no translations in the existing file for : " + key);
+                            existingEmptyTranslations.add(key);
+                        }else{
+                            existingTranslations.put(key, value);
+                        }
 
                     }else System.out.println("WARNING : a key is twice in the existing file : " + key + " (This issue is solved automatically)");
                 }
@@ -189,12 +198,16 @@ public class Main {
 
                     if(existingTranslations.containsKey(codeKey)){
                         writer.write(codeKey + SEPARATOR + existingTranslations.get(codeKey));
-                        lines++;
+                        translated++;
                         writer.newLine();
                         existingTranslations.remove(codeKey);
                     }else{
+                        if(!existingEmptyTranslations.contains(codeKey)){
+                            System.out.println("-> Adding empty translation : " + codeKey);
+                            added++;
+                        }
                         writer.write(codeKey + SEPARATOR);
-                        added++; lines++;
+                        empty++;
                         writer.newLine();
                     }
                 }
